@@ -2,12 +2,9 @@
 import os
 
 
-FINAL_FOLDER = r"\teste_musiquinhas"
+FINAL_FOLDER = r"\hightech-"
 DOWNLOAD_FOLDER = r'D:\songs' + FINAL_FOLDER
-YOUTUBE_URLS = [
-    "https://soundcloud.com/chapeleiro/bruxaria"
-]
-MAX_RETRIES = 5  # Número máximo de tentativas
+MAX_RETRIES = 2  # Número máximo de tentativas
 YOUTUBE_CONF = {
     'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(title)s.%(ext)s'),
     'format': 'bestaudio[ext=mp3]/bestaudio',
