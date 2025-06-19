@@ -5,12 +5,18 @@ from configs import DOWNLOAD_FOLDER, MAX_RETRIES, YOUTUBE_CONF
 from helpers import add_metadata, build_url_list, get_top_tracks_from_dj, sanitize_filename, expand_soundcloud_sets
 
 
-def download_mp3(url):
+def download_batch(batch_urls, start_index):
+    for index, track_url in enumerate(batch_urls, start=start_index):
+        print(f"\n➡️ Downloading ({index}/{len(urls)}): {track_url}")
+        download_mp3(track_url)
+
+
+def download_mp3(urls):
     attempts = 0
     while attempts < MAX_RETRIES:
         try:
             with yt_dlp.YoutubeDL(YOUTUBE_CONF) as ydl:
-                info_dict = ydl.extract_info(url, download=False)
+                info_dict = ydl.extract_info(urls, download=False)
                 title = info_dict.get('title', 'unknown_title')
 
                 duration = info_dict.get('duration', 0)
@@ -26,7 +32,7 @@ def download_mp3(url):
                     return
                 else:
                     print(f"⬇️ Downloading: {title}")
-                    ydl.download([url])
+                    ydl.download([urls])
 
                     if os.path.exists(final_file_path):
                         artist = info_dict.get('uploader', 'Unknown Artist')
@@ -43,9 +49,9 @@ def download_mp3(url):
                     return
         except Exception as e:
             attempts += 1
-            print(f"❌ Error downloading {url} (attempt {attempts}/{MAX_RETRIES}): {e}")
+            print(f"❌ Error downloading {urls} (attempt {attempts}/{MAX_RETRIES}): {e}")
             time.sleep(5)
-    print(f"🚫 Failed to download {url} after {MAX_RETRIES} attempts.")
+    print(f"🚫 Failed to download {urls} after {MAX_RETRIES} attempts.")
 
 
 print("🎧 Welcome to the SoundCloud Downloader")
@@ -92,9 +98,9 @@ if urls:
     print(f"\n📦 Total URLs to download: {len(urls)}\n")
     parsed_urls = build_url_list(urls)
 
-    for index, video_url in enumerate(parsed_urls, start=1):
-        print(f"\n➡️ Downloading ({index}/{len(parsed_urls)}): {video_url}")
-        download_mp3(video_url)
+    for i in range(0, len(urls), 10):
+        batch = urls[i:i + 10]
+        download_batch(batch, i + 1)
 
     print("\n🎉 All downloads completed!")
 else:
