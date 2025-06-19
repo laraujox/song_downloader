@@ -1,14 +1,10 @@
 import yt_dlp
 import os
 import time
-from configs import DOWNLOAD_FOLDER, MAX_RETRIES, YOUTUBE_CONF
+from configs import DOWNLOAD_FOLDER, MAX_RETRIES, YOUTUBE_CONF, MIN_SECONDS, MAX_SECONDS
 from helpers import add_metadata, build_url_list, get_top_tracks_from_dj, sanitize_filename, expand_soundcloud_sets
-
-
-def download_batch(batch_urls, start_index):
-    for index, track_url in enumerate(batch_urls, start=start_index):
-        print(f"\n➡️ Downloading ({index}/{len(urls)}): {track_url}")
-        download_mp3(track_url)
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from tqdm import tqdm
 
 
 def download_mp3(urls):
@@ -20,7 +16,7 @@ def download_mp3(urls):
                 title = info_dict.get('title', 'unknown_title')
 
                 duration = info_dict.get('duration', 0)
-                if 900 > duration < 60:
+                if MAX_SECONDS > duration < MIN_SECONDS:
                     print(f"⏩ Skipping ad (invalid length): {title} ({duration}s)")
                     return
 
@@ -28,10 +24,8 @@ def download_mp3(urls):
                 final_file_path = os.path.join(DOWNLOAD_FOLDER, f"{title}.mp3")
 
                 if os.path.exists(final_file_path):
-                    print(f"⚠️ Skipping download: '{final_file_path}' already exists.")
                     return
                 else:
-                    print(f"⬇️ Downloading: {title}")
                     ydl.download([urls])
 
                     if os.path.exists(final_file_path):
@@ -44,8 +38,6 @@ def download_mp3(urls):
                             genre = info_dict['tags'][0]
 
                         add_metadata(final_file_path, artist=artist, genre=genre, year=year)
-
-                        print(f"✅ Finished downloading and tagging: {title}\nSaved to: {final_file_path}")
                     return
         except Exception as e:
             attempts += 1
@@ -98,9 +90,15 @@ if urls:
     print(f"\n📦 Total URLs to download: {len(urls)}\n")
     parsed_urls = build_url_list(urls)
 
-    for i in range(0, len(urls), 10):
-        batch = urls[i:i + 10]
-        download_batch(batch, i + 1)
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        future_to_url = {executor.submit(download_mp3, url): url for url in urls}
+
+        for i, future in enumerate(tqdm(as_completed(future_to_url), total=len(urls)), 1):
+            url = future_to_url[future]
+            try:
+                future.result()
+            except Exception as exc:
+                print(f"❌ Download failed for {url}: {exc}")
 
     print("\n🎉 All downloads completed!")
 else:

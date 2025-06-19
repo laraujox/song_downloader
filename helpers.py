@@ -1,7 +1,5 @@
-
 from urllib.parse import parse_qs, urlparse
 
-import yt_dlp
 from mutagen.mp3 import MP3
 from mutagen.easyid3 import EasyID3
 
@@ -27,7 +25,6 @@ def add_metadata(file_path, artist=None, album=None, genre=None, year=None):
         if year:
             audio['date'] = year
         audio.save()
-        print(f"Metadata added to: {file_path}")
     except Exception as e:
         print(f"Failed to add metadata: {e}")
 
