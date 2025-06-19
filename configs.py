@@ -2,9 +2,11 @@
 import os
 
 
-FINAL_FOLDER = r"\DNB"
+FINAL_FOLDER = r"\dark"
 DOWNLOAD_FOLDER = r'D:\songs' + FINAL_FOLDER
 MAX_RETRIES = 2  # Número máximo de tentativas
+MIN_SECONDS = 180
+MAX_SECONDS = 900
 YOUTUBE_CONF = {
     'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(title)s.%(ext)s'),
     'format': 'bestaudio[ext=mp3]/bestaudio',
@@ -12,6 +14,12 @@ YOUTUBE_CONF = {
     'ffmpeg_location': r'C:\ffmpeg\bin\ffmpeg.exe',
     'socket_timeout': 60,
     'concurrent_fragment_downloads': 5,
+    'continuedl': True,
+    'quiet': True,
+    'no_warnings': True,
+    'progress_hooks': [],
+    'logger': None,
+    'verbose': False,
 }
 ALLOWED_EXTENSIONS = tuple('.mp3')
 
