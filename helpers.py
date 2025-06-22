@@ -1,5 +1,7 @@
 from urllib.parse import parse_qs, urlparse
 
+import requests
+from mutagen.id3 import ID3, APIC
 from mutagen.mp3 import MP3
 from mutagen.easyid3 import EasyID3
 
@@ -12,21 +14,7 @@ def sanitize_filename(name):
     return name.strip()
 
 
-def add_metadata(file_path, artist=None, album=None, genre=None, year=None):
-    """Adiciona metadados ao arquivo MP3."""
-    try:
-        audio = MP3(file_path, ID3=EasyID3)
-        if artist:
-            audio['artist'] = artist
-        if album:
-            audio['album'] = album
-        if genre:
-            audio['genre'] = genre
-        if year:
-            audio['date'] = year
-        audio.save()
-    except Exception as e:
-        print(f"Failed to add metadata: {e}")
+
 
 
 def clean_url(url):
@@ -91,3 +79,29 @@ def expand_soundcloud_sets(urls):
             except Exception as e:
                 print(f"❌ Erro ao expandir {url}: {e}")
     return expanded
+
+def add_metadata(file_path, artist=None, genre=None, year=None, cover_url=None):
+    audio = EasyID3(file_path)
+    if artist:
+        audio['artist'] = artist
+    if genre:
+        audio['genre'] = genre
+    if year:
+        audio['date'] = year
+    audio.save()
+
+    if cover_url:
+        try:
+            img_data = requests.get(cover_url).content
+            audio = ID3(file_path)
+            audio['APIC'] = APIC(
+                encoding=3,         # UTF-8
+                mime='image/jpeg',  # or image/png
+                type=3,             # Cover (front)
+                desc='Cover',
+                data=img_data
+            )
+            audio.save()
+            print(f"🖼️ Cover art added from: {cover_url}")
+        except Exception as e:
+            print(f"⚠️ Failed to add cover art: {e}")

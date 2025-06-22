@@ -2,7 +2,7 @@
 import os
 
 
-FINAL_FOLDER = r"\dark"
+FINAL_FOLDER = r"\darky"
 DOWNLOAD_FOLDER = r'D:\songs' + FINAL_FOLDER
 MAX_RETRIES = 2  # Número máximo de tentativas
 MIN_SECONDS = 180
@@ -74,10 +74,7 @@ KEY_GROUPS = {
 }
 
 BPM_RANGES = {
-    "BPM_60_89": range(60, 90),
-    "BPM_90_120": range(00, 121),
-    "BPM_121_150": range(121, 151),
+    "BPM_60_150": range(60, 151),
     "BPM_151_180": range(151, 181),
-    "BPM_181_210": range(181, 211),
-    "BPM_210_PLUS": range(211, 1000),
+    "BPM_181_PLUS": range(181, 1000),
 }

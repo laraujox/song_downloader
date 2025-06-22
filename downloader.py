@@ -13,6 +13,7 @@ def download_mp3(urls):
         try:
             with yt_dlp.YoutubeDL(YOUTUBE_CONF) as ydl:
                 info_dict = ydl.extract_info(urls, download=False)
+
                 title = info_dict.get('title', 'unknown_title')
 
                 duration = info_dict.get('duration', 0)
@@ -29,7 +30,8 @@ def download_mp3(urls):
                     ydl.download([urls])
 
                     if os.path.exists(final_file_path):
-                        artist = info_dict.get('uploader', 'Unknown Artist')
+                        cover_url = info_dict.get('thumbnail')
+                        artist = info_dict.get('uploader', '')
                         year = info_dict.get('upload_date', '')[:4] if info_dict.get('upload_date') else None
                         genre = None
                         if info_dict.get('categories'):
@@ -37,7 +39,8 @@ def download_mp3(urls):
                         elif info_dict.get('tags'):
                             genre = info_dict['tags'][0]
 
-                        add_metadata(final_file_path, artist=artist, genre=genre, year=year)
+                        add_metadata(final_file_path, artist=artist, genre=genre, year=year, cover_url=cover_url)
+
                     return
         except Exception as e:
             attempts += 1
@@ -101,5 +104,6 @@ if urls:
                 print(f"❌ Download failed for {url}: {exc}")
 
     print("\n🎉 All downloads completed!")
+
 else:
     print("🚫 No valid URLs to download.")
