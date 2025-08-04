@@ -2,9 +2,10 @@
 import os
 
 
-FINAL_FOLDER = r"\darky"
-DOWNLOAD_FOLDER = r'D:\songs' + FINAL_FOLDER
-MAX_RETRIES = 2  # Número máximo de tentativas
+FINAL_FOLDER = r"\kaotek-set"
+DOWNLOAD_FOLDER = r'E:\songs' + FINAL_FOLDER
+MAX_RETRIES = 2
+
 MIN_SECONDS = 180
 MAX_SECONDS = 900
 YOUTUBE_CONF = {
