@@ -1,9 +1,10 @@
 from urllib.parse import parse_qs, urlparse
+import subprocess
 
 import requests
-from mutagen.id3 import ID3, APIC
-from mutagen.mp3 import MP3
+from mutagen.id3 import ID3, APIC, ID3NoHeaderError
 from mutagen.easyid3 import EasyID3
+from mutagen.mp3 import MP3
 
 
 def sanitize_filename(name):
@@ -80,8 +81,39 @@ def expand_soundcloud_sets(urls):
                 print(f"❌ Erro ao expandir {url}: {e}")
     return expanded
 
-def add_metadata(file_path, artist=None, genre=None, year=None, cover_url=None):
-    audio = EasyID3(file_path)
+def add_metadata(file_path, info_dict=None):
+    try:
+        genre = None
+        if info_dict.get('categories'):
+            genre = info_dict['categories'][0]
+        elif info_dict.get('tags'):
+            genre = info_dict['tags'][0]
+        cover_url = info_dict.get('thumbnail')
+        artist = info_dict.get('artist') or info_dict.get('uploader', "")
+        year = info_dict.get('upload_date', '')[:4] if info_dict.get('upload_date') else None
+
+        img_data = requests.get(cover_url).content
+        audio = ID3(file_path)
+        audio['APIC'] = APIC(
+            encoding=3,         # UTF-8
+            mime='image/jpeg',  # or image/png
+            type=3,             # Cover (front)
+            desc='Cover',
+            data=img_data
+        )
+        audio.save()
+    except ID3NoHeaderError:
+        try:
+            audio_file = MP3(file_path)
+            audio_file.add_tags()
+            audio_file.save()
+            audio = EasyID3(file_path)
+        except Exception as e:
+            return
+    except Exception as e:
+        return
+
+    # Preenche campos
     if artist:
         audio['artist'] = artist
     if genre:
@@ -90,18 +122,18 @@ def add_metadata(file_path, artist=None, genre=None, year=None, cover_url=None):
         audio['date'] = year
     audio.save()
 
-    if cover_url:
-        try:
-            img_data = requests.get(cover_url).content
-            audio = ID3(file_path)
-            audio['APIC'] = APIC(
-                encoding=3,         # UTF-8
-                mime='image/jpeg',  # or image/png
-                type=3,             # Cover (front)
-                desc='Cover',
-                data=img_data
-            )
-            audio.save()
-            print(f"🖼️ Cover art added from: {cover_url}")
-        except Exception as e:
-            print(f"⚠️ Failed to add cover art: {e}")
+
+def is_spotify_url(url):
+    return "open.spotify.com" in url
+
+
+def download_with_spotdl(url):
+    try:
+        print(f"🎶 Using spotDL to download: {url}")
+
+        subprocess.run(["spotdl", "--download-ffmpeg"], check=False)
+        subprocess.run(["spotdl", "download", url], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"❌ spotDL failed to download {url}: {e}")
+
+# https://open.spotify.com/track/464SsB6jzsJM14rRxU5G1s?si=ec7c3988ef544a8a

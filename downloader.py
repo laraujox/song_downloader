@@ -2,7 +2,8 @@ import yt_dlp
 import os
 import time
 from configs import DOWNLOAD_FOLDER, MAX_RETRIES, YOUTUBE_CONF, MIN_SECONDS, MAX_SECONDS
-from helpers import add_metadata, build_url_list, get_top_tracks_from_dj, sanitize_filename, expand_soundcloud_sets
+from helpers import add_metadata, build_url_list, get_top_tracks_from_dj, sanitize_filename, expand_soundcloud_sets, \
+    is_spotify_url, download_with_spotdl
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 
@@ -30,16 +31,14 @@ def download_mp3(urls):
                     ydl.download([urls])
 
                     if os.path.exists(final_file_path):
-                        cover_url = info_dict.get('thumbnail')
-                        artist = info_dict.get('uploader', '')
-                        year = info_dict.get('upload_date', '')[:4] if info_dict.get('upload_date') else None
-                        genre = None
-                        if info_dict.get('categories'):
-                            genre = info_dict['categories'][0]
-                        elif info_dict.get('tags'):
-                            genre = info_dict['tags'][0]
+                        if os.path.getsize(final_file_path) < 50_000:  # evita arquivos muito pequenos (provavelmente inválidos)
+                            print(f"⚠️ Skipping corrupted or incomplete file: {title}")
+                            return
 
-                        add_metadata(final_file_path, artist=artist, genre=genre, year=year, cover_url=cover_url)
+                        try:
+                            add_metadata(final_file_path, info_dict=info_dict)
+                        except Exception as e:
+                            print(f"⚠️ Failed to add metadata to {title}: {e}")
 
                     return
         except Exception as e:
@@ -81,10 +80,18 @@ elif option == "2":
     urls = [url.strip() for url in input_urls.split(',')]
 
 elif option == "3":
-    input_urls = input("Enter SoundCloud playlist URLs (comma-separated): ")
+    input_urls = input("Enter SoundCloud or Spotify playlist URLs (comma-separated): ")
     urls_raw = [url.strip() for url in input_urls.split(',')]
-    print("🔄 Expanding playlists...")
-    urls = expand_soundcloud_sets(urls_raw)
+
+    for url in urls_raw:
+        if is_spotify_url(url):
+            download_with_spotdl(url)
+        else:
+            print(f"🔄 Expanding SoundCloud playlist: {url}")
+            try:
+                urls.extend(expand_soundcloud_sets([url]))
+            except Exception as e:
+                print(f"❌ Failed to expand playlist {url}: {e}")
 
 else:
     print("⚠ Invalid option. Exiting.")
