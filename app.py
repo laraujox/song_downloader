@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from helpers import get_top_tracks_from_dj, expand_soundcloud_sets, build_url_list
+from helpers import get_top_tracks_from_dj, expand_soundcloud_playlist_url, build_url_list
 from downloader import download_mp3  # Assuming you have a separate download_mp3 function
 
 app = Flask(__name__)
@@ -32,7 +32,7 @@ def download():
 
     elif option == "3":
         print("🔄 Expanding playlists...")
-        urls = expand_soundcloud_sets(input_urls)
+        urls = expand_soundcloud_playlist_url(input_urls)
 
     else:
         return jsonify({"error": "Invalid option."}), 400

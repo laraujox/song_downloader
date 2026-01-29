@@ -51,7 +51,7 @@ def get_top_tracks_from_dj(dj_url, limit=5):
 import yt_dlp
 
 
-def expand_soundcloud_sets(urls):
+def expand_soundcloud_playlist_url(url):
     """
     Recebe uma lista de URLs (que podem ser faixas ou playlists do SoundCloud),
     e retorna uma nova lista onde cada playlist foi substituída pelas URLs
@@ -65,21 +65,22 @@ def expand_soundcloud_sets(urls):
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        for url in urls:
-            try:
-                info = ydl.extract_info(url, download=False)
-                # Se for uma playlist, 'entries' existe e é lista de faixas
-                if 'entries' in info and isinstance(info['entries'], list):
-                    # Cada item em info['entries'] terá ao menos: 'url' e 'title'
-                    for entry in info['entries']:
-                        # 'url' já é o link direto para a faixa no SoundCloud
-                        expanded.append(entry['url'])
-                else:
-                    # Não é playlist; entra a URL como faixa única
-                    expanded.append(url)
-            except Exception as e:
-                print(f"❌ Erro ao expandir {url}: {e}")
-    return expanded
+        try:
+            info = ydl.extract_info(url, download=False)
+            # Se for uma playlist, 'entries' existe e é lista de faixas
+            if 'entries' in info and isinstance(info['entries'], list):
+                # Cada item em info['entries'] terá ao menos: 'url' e 'title'
+                for entry in info['entries']:
+                    # 'url' já é o link direto para a faixa no SoundCloud
+                    expanded.append(entry['url'])
+            else:
+                # Não é playlist; entra a URL como faixa única
+                expanded.append(url)
+        except Exception as e:
+            print(f"❌ Erro ao expandir {url}: {e}")
+    folder_name = url.split("/sets/")[1].replace("/", "")
+
+    return expanded, folder_name
 
 def add_metadata(file_path, info_dict=None):
     try:

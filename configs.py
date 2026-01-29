@@ -2,26 +2,13 @@
 import os
 
 
-FINAL_FOLDER = r"\kaotek-set"
-DOWNLOAD_FOLDER = r'E:\songs' + FINAL_FOLDER
+FINAL_FOLDER = r"teste"
+ROOT_FOLDER = r'D:\songs\\'
+DOWNLOAD_FOLDER = ROOT_FOLDER + FINAL_FOLDER
 MAX_RETRIES = 2
 
-MIN_SECONDS = 180
-MAX_SECONDS = 900
-YOUTUBE_CONF = {
-    'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(title)s.%(ext)s'),
-    'format': 'bestaudio[ext=mp3]/bestaudio',
-    'noplaylist': False,
-    'ffmpeg_location': r'C:\ffmpeg\bin\ffmpeg.exe',
-    'socket_timeout': 60,
-    'concurrent_fragment_downloads': 5,
-    'continuedl': True,
-    'quiet': True,
-    'no_warnings': True,
-    'progress_hooks': [],
-    'logger': None,
-    'verbose': False,
-}
+MIN_SECONDS = 120
+MAX_SECONDS = 600
 ALLOWED_EXTENSIONS = tuple('.mp3')
 
 HARMONIC_COMPATIBILITY = {

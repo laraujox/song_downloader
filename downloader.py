@@ -1,19 +1,37 @@
 import yt_dlp
 import os
 import time
-from configs import DOWNLOAD_FOLDER, MAX_RETRIES, YOUTUBE_CONF, MIN_SECONDS, MAX_SECONDS
-from helpers import add_metadata, build_url_list, get_top_tracks_from_dj, sanitize_filename, expand_soundcloud_sets, \
+from configs import MAX_RETRIES, MIN_SECONDS, MAX_SECONDS, ROOT_FOLDER
+from helpers import add_metadata, build_url_list, get_top_tracks_from_dj, sanitize_filename, expand_soundcloud_playlist_url, \
     is_spotify_url, download_with_spotdl
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 
 
-def download_mp3(urls):
+def download_mp3(url, folder_name):
     attempts = 0
+    download_folder = ROOT_FOLDER + folder_name
+
+
+    youtube_conf = {
+        'outtmpl': os.path.join(download_folder, '%(title)s.%(ext)s'),
+        'format': 'bestaudio[ext=mp3]/bestaudio',
+        'noplaylist': False,
+        'ffmpeg_location': r'C:\ffmpeg\bin\ffmpeg.exe',
+        'socket_timeout': 60,
+        'concurrent_fragment_downloads': 5,
+        'continuedl': True,
+        'quiet': True,
+        'no_warnings': True,
+        'progress_hooks': [],
+        'logger': None,
+        'verbose': False,
+    }
+
     while attempts < MAX_RETRIES:
         try:
-            with yt_dlp.YoutubeDL(YOUTUBE_CONF) as ydl:
-                info_dict = ydl.extract_info(urls, download=False)
+            with yt_dlp.YoutubeDL(youtube_conf) as ydl:
+                info_dict = ydl.extract_info(url, download=False)
 
                 title = info_dict.get('title', 'unknown_title')
 
@@ -23,12 +41,12 @@ def download_mp3(urls):
                     return
 
                 title = sanitize_filename(title)
-                final_file_path = os.path.join(DOWNLOAD_FOLDER, f"{title}.mp3")
+                final_file_path = os.path.join(download_folder, f"{title}.mp3")
 
                 if os.path.exists(final_file_path):
                     return
                 else:
-                    ydl.download([urls])
+                    ydl.download([url])
 
                     if os.path.exists(final_file_path):
                         if os.path.getsize(final_file_path) < 50_000:  # evita arquivos muito pequenos (provavelmente inválidos)
@@ -43,9 +61,9 @@ def download_mp3(urls):
                     return
         except Exception as e:
             attempts += 1
-            print(f"❌ Error downloading {urls} (attempt {attempts}/{MAX_RETRIES}): {e}")
+            print(f"❌ Error downloading {url} (attempt {attempts}/{MAX_RETRIES}): {e}")
             time.sleep(5)
-    print(f"🚫 Failed to download {urls} after {MAX_RETRIES} attempts.")
+    print(f"🚫 Failed to download {url} after {MAX_RETRIES} attempts.")
 
 
 print("🎧 Welcome to the SoundCloud Downloader")
@@ -81,36 +99,38 @@ elif option == "2":
 
 elif option == "3":
     input_urls = input("Enter SoundCloud or Spotify playlist URLs (comma-separated): ")
-    urls_raw = [url.strip() for url in input_urls.split(',')]
+    playlist_urls = [url.strip() for url in input_urls.split(',')]
 
-    for url in urls_raw:
-        if is_spotify_url(url):
-            download_with_spotdl(url)
+    for playlist_url in playlist_urls:
+        if is_spotify_url(playlist_url):
+            download_with_spotdl(playlist_url)
         else:
-            print(f"🔄 Expanding SoundCloud playlist: {url}")
+            print(f"🔄 Expanding SoundCloud playlist: {playlist_url}")
             try:
-                urls.extend(expand_soundcloud_sets([url]))
+                song_urls, folder_name  = expand_soundcloud_playlist_url(playlist_url)
+
+                if song_urls:
+                    print(f"\n📦 Total URLs to download: {len(song_urls)}\n")
+                    parsed_urls = build_url_list(song_urls)
+
+                    with ThreadPoolExecutor(max_workers=8) as executor:
+                        futures = []
+
+                        for song_url in song_urls:
+                            futures.append(executor.submit(download_mp3, song_url, folder_name))
+
+                        for future in tqdm(as_completed(futures), total=len(futures)):
+                            try:
+                                future.result()
+                            except Exception as exc:
+                                print(f"❌ Download failed: {exc}")
+                    print("\n🎉 All downloads completed!")
+
+                else:
+                    print("🚫 No valid URLs to download.")
+
             except Exception as e:
-                print(f"❌ Failed to expand playlist {url}: {e}")
+                print(f"❌ Failed to expand playlist {playlist_url}: {e}")
 
 else:
     print("⚠ Invalid option. Exiting.")
-
-if urls:
-    print(f"\n📦 Total URLs to download: {len(urls)}\n")
-    parsed_urls = build_url_list(urls)
-
-    with ThreadPoolExecutor(max_workers=8) as executor:
-        future_to_url = {executor.submit(download_mp3, url): url for url in urls}
-
-        for i, future in enumerate(tqdm(as_completed(future_to_url), total=len(urls)), 1):
-            url = future_to_url[future]
-            try:
-                future.result()
-            except Exception as exc:
-                print(f"❌ Download failed for {url}: {exc}")
-
-    print("\n🎉 All downloads completed!")
-
-else:
-    print("🚫 No valid URLs to download.")
